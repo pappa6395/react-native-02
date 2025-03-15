@@ -5,7 +5,7 @@ import images from '@/constants/images'
 import icons from '@/constants/icons'
 import { login } from '@/lib/appwrite'
 import { useGlobalContext } from '@/lib/global-provider'
-import { Link, Redirect } from 'expo-router'
+import { Link, Redirect, router } from 'expo-router'
 
 const SignIn = () => {
 
@@ -19,6 +19,7 @@ const SignIn = () => {
         if (result) {
             refetch();
             console.log('Logged in successfully');
+            router.push('/')
         } else {
             Alert.alert('Error', 'Failed to login');
             
@@ -31,11 +32,11 @@ const SignIn = () => {
         <ScrollView contentContainerStyle={{
             flexGrow: 1,
         }}>
-            <Image 
-                source={images.onboarding}
-                className='w-full h-4/6'
-                resizeMode='contain'
-            />
+                <Image 
+                    source={images.onboarding}
+                    className='w-full h-4/6'
+                    resizeMode='contain'
+                />
              <View className='px-10'>
                 <Text className='text-base text-center 
                 uppercase font-rubik text-black-200'

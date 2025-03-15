@@ -7,31 +7,70 @@ import { getLatestProperties, getProperties } from "@/lib/appwrite";
 import { useGlobalContext } from "@/lib/global-provider";
 import { useAppwrite } from "@/lib/useAppwrite";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Button, FlatList, Image, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Explore() {
 
   const params = useLocalSearchParams<{ query?: string; filter?: string}>();
+  const [properties, setProperties] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   
-  const { data: properties, loading, refetch } = useAppwrite({
-    fn: getProperties,
-    params: {
-      filter: params.filter!,
-      query: params.query,
-      limit: 20,
-    },
-    skip: true,
-  })
+  // const { data: properties, loading, refetch } = useAppwrite({
+  //   fn: getProperties,
+  //   params: {
+  //     filter: params.filter!,
+  //     query: params.query,
+  //     limit: 4,
+  //   },
+  //   skip: true,
+  // })
+
+  const fetchProperties = async (pageNum: number) => {
+    if (!hasMore || loading) return;
+
+    setLoading(true);
+    try {
+      const newProperties = await getProperties({
+        filter: params.filter!,
+        query: params.query,
+        limit: 4, // Fetch 10 properties per request
+        offset: (pageNum - 1) * 4, // Skip previous pages
+      });
+      
+      setProperties((prev) => [...prev, ...newProperties]);
+      setHasMore(newProperties.length === 4); // If less than 10, no more data
+      setPage(pageNum);
+    } catch (error) {
+      console.error("Error fetching properties:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
+  // useEffect(() => {
+  //   refetch({
+  //     filter: params.filter!,
+  //     query: params.query,
+  //     limit: 4,
+  //   });
+  // })
   useEffect(() => {
-    refetch({
-      filter: params.filter!,
-      query: params.query,
-      limit: 20,
-    });
-  })
+    setProperties([]); // Reset list on filter change
+    setPage(1);
+    setHasMore(true);
+    fetchProperties(1);
+  }, [params.filter, params.query]);
+
+  // Function to load more properties on scroll
+  const loadMore = () => {
+    if (!loading && hasMore) {
+      fetchProperties(page + 1);
+    }
+  };
 
   const handleCardPress = (id: string) => {
     router.push(`/properties/${id}`);
@@ -50,15 +89,18 @@ export default function Explore() {
         onPress={() => handleCardPress(item.$id)} 
         item={item} />}
         contentContainerStyle={{ paddingBottom: 80 }}
-        ListFooterComponent={<View style={{ height: 80 }} />}
-        keyboardShouldPersistTaps="handled"
-        ListEmptyComponent={
+        ListFooterComponent={
           loading ? (
-            <ActivityIndicator 
-              size='large'
-              className="text-primary-300 mt-5" 
-            />
-          ) : <NoResults />
+            <ActivityIndicator size="large" className="text-primary-300 mt-5" />
+          ) : null
+        }
+        keyboardShouldPersistTaps="handled"
+        onEndReached={loadMore} // Load more when scrolled to bottom
+        onEndReachedThreshold={0.5} // Adjust sensitivity
+        ListEmptyComponent={
+          !loading ? (
+            <NoResults />
+          ) : null
         }
         ListHeaderComponent={
           <View className="px-5">

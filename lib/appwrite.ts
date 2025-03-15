@@ -1,6 +1,7 @@
 import { Account, Avatars, Client, Databases, OAuthProvider, Query} from 'react-native-appwrite';
 import * as Linking from 'expo-linking';
 import { openAuthSessionAsync } from 'expo-web-browser';
+import { PropertyProps } from '@/app/(root)/properties/[id]';
 
 export const config = {
     platform: 'com.pap.papestate',
@@ -99,11 +100,13 @@ export async function getLatestProperties() {
 export async function getProperties({
     filter, 
     query, 
-    limit
+    limit,
+    offset = 0
 }:{
     filter: string;
     query?: string;
     limit?: number;
+    offset?: number;
 }) {
 
     try {
@@ -124,6 +127,11 @@ export async function getProperties({
         if (limit) {
             buildQuery.push(Query.limit(limit))
         }
+        // ✅ Apply Offset for Pagination
+        if (offset) {
+            buildQuery.push(Query.offset(offset));
+        }
+        
         const result = await databases.listDocuments(
             config.databaseId,
             config.propertiesCollectionId,
